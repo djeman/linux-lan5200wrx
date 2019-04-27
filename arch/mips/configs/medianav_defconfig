@@ -220,5 +220,5 @@ CONFIG_FONT_8x8=y
 # CONFIG_HW_RANDOM is not set
 # CONFIG_VIRTIO_MENU is not set
 CONFIG_CMDLINE_BOOL=y
-CONFIG_CMDLINE="root=/dev/ram console=ttyS2,115200n8"
+CONFIG_CMDLINE="root=/dev/ram console=ttyS2,115200n8 video=au1200fb:panel:bs"
 CONFIG_CMDLINE_EXTEND=y
