@@ -30,6 +30,13 @@ load-$(CONFIG_MIPS_XXS1500)	+= 0xffffffff80100000
 platform-$(CONFIG_MIPS_GPR)	+= alchemy/
 load-$(CONFIG_MIPS_GPR)		+= 0xffffffff80100000
 
+#
+# LG LAN5200WRx board
+#
+platform-$(CONFIG_MIPS_LAN5200WRX)	+= alchemy/
+cflags-$(CONFIG_MIPS_LAN5200WRX)	+= -I$(srctree)/arch/mips/include/asm/mach-lan5200wrx
+load-$(CONFIG_MIPS_LAN5200WRX)		+= 0xffffffff80100000
+
 # boards can specify their own <gpio.h> in one of their include dirs.
 # If they do, placing this line here at the end will make sure the
 # compiler picks the board one.	 If they don't, it will make sure
