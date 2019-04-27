@@ -1019,6 +1019,8 @@ static int au1xmmc_probe(struct platform_device *pdev)
 		break;
 	}
 
+	au1xmmc_reset_controller(host);
+
 	ret = request_irq(host->irq, au1xmmc_irq, iflag, DRIVER_NAME, host);
 	if (ret) {
 		dev_err(&pdev->dev, "cannot grab IRQ\n");
@@ -1077,8 +1079,6 @@ static int au1xmmc_probe(struct platform_device *pdev)
 			goto out5;
 	}
 #endif
-
-	au1xmmc_reset_controller(host);
 
 	ret = mmc_add_host(mmc);
 	if (ret) {
