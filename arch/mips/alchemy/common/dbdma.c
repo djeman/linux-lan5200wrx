@@ -484,6 +484,14 @@ u32 au1xxx_dbdma_ring_alloc(u32 chanid, int entries)
 	}
 
 	/*
+	 * If datum size is 32 bits for SW and DW, set the stride
+	 * mode on 2 dimensional
+	 */
+	if (((cmd0 & DSCR_CMD0_SW_MASK) == DSCR_CMD0_SW(DSCR_CMD0_WORD)) &&
+		((cmd0 & DSCR_CMD0_DW_MASK) == DSCR_CMD0_DW(DSCR_CMD0_WORD)))
+		cmd0 |= DSCR_CMD0_SM;
+
+	/*
 	 * If the device is marked as an in/out FIFO, ensure it is
 	 * set non-coherent.
 	 */
