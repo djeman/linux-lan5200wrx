@@ -632,7 +632,10 @@ static int au1xmmc_prepare_data(struct au1xmmc_host *host,
 	if (host->mrq->stop)
 		host->flags |= HOST_F_STOP;
 
-	host->dma.dir = DMA_BIDIRECTIONAL;
+	if (data->flags & MMC_DATA_READ)
+		host->dma.dir = DMA_FROM_DEVICE;
+	else
+		host->dma.dir = DMA_TO_DEVICE;
 
 	host->dma.len = dma_map_sg(mmc_dev(host->mmc), data->sg,
 				   data->sg_len, host->dma.dir);
