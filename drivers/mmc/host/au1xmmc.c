@@ -114,6 +114,7 @@ struct au1xmmc_host {
 	u32 rx_chan;
 
 	int irq;
+	int memid;
 
 	struct tasklet_struct finish_task;
 	struct tasklet_struct data_task;
@@ -152,14 +153,19 @@ struct au1xmmc_host {
 #define DMA_CHANNEL(h)	\
 	(((h)->flags & HOST_F_XMIT) ? (h)->tx_chan : (h)->rx_chan)
 
+#define DMA_SHARED		2
+#define DMA_NOT_SHARED		1
+#define DMA_NOT_AVAILABLE	0
+
 static inline int has_dbdma(void)
 {
 	switch (alchemy_get_cputype()) {
 	case ALCHEMY_CPU_AU1200:
+		return DMA_SHARED;
 	case ALCHEMY_CPU_AU1300:
-		return 1;
+		return DMA_NOT_SHARED;
 	default:
-		return 0;
+		return DMA_NOT_AVAILABLE;
 	}
 }
 
@@ -745,15 +751,23 @@ static void au1xmmc_reset_controller(struct au1xmmc_host *host)
 	__raw_writel(0x001fffff, HOST_TIMEOUT(host));
 	wmb(); /* drain writebuffer */
 
-	__raw_writel(SD_CONFIG2_EN, HOST_CONFIG2(host));
-	wmb(); /* drain writebuffer */
-
-	__raw_writel(SD_CONFIG2_EN | SD_CONFIG2_FF, HOST_CONFIG2(host));
-	wmb(); /* drain writebuffer */
-	mdelay(1);
-
-	__raw_writel(SD_CONFIG2_EN, HOST_CONFIG2(host));
-	wmb(); /* drain writebuffer */
+	if (host->mmc->caps & MMC_CAP_8_BIT_DATA) {
+		__raw_writel(SD_CONFIG2_EN | SD_CONFIG2_DP, HOST_CONFIG2(host));
+		wmb(); /* drain writebuffer */
+		__raw_writel(SD_CONFIG2_EN | SD_CONFIG2_FF | SD_CONFIG2_DP, HOST_CONFIG2(host));
+		wmb(); /* drain writebuffer */
+		mdelay(1);
+		__raw_writel(SD_CONFIG2_EN | SD_CONFIG2_DP, HOST_CONFIG2(host));
+		wmb(); /* drain writebuffer */
+	} else {
+		__raw_writel(SD_CONFIG2_EN, HOST_CONFIG2(host));
+		wmb(); /* drain writebuffer */
+		__raw_writel(SD_CONFIG2_EN | SD_CONFIG2_FF, HOST_CONFIG2(host));
+		wmb(); /* drain writebuffer */
+		mdelay(1);
+		__raw_writel(SD_CONFIG2_EN, HOST_CONFIG2(host));
+		wmb(); /* drain writebuffer */
+	}
 
 	/* Configure interrupts */
 	__raw_writel(AU1XMMC_INTERRUPTS, HOST_CONFIG(host));
@@ -855,8 +869,19 @@ static irqreturn_t au1xmmc_irq(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+/* 32bit memory DMA device */
+static dbdev_tab_t au1xmmc_mem32_dbdev = {
+	.dev_id		= DSCR_CMD0_ALWAYS,
+	.dev_flags	= DEV_FLAGS_ANYUSE,
+	.dev_tsize	= 0,
+	.dev_devwidth	= 32,
+	.dev_physaddr	= 0x00000000,
+	.dev_intlevel	= 0,
+	.dev_intpolarity = 0,
+};
+
 /* 8bit memory DMA device */
-static dbdev_tab_t au1xmmc_mem_dbdev = {
+static dbdev_tab_t au1xmmc_mem8_dbdev = {
 	.dev_id		= DSCR_CMD0_ALWAYS,
 	.dev_flags	= DEV_FLAGS_ANYUSE,
 	.dev_tsize	= 0,
@@ -865,6 +890,7 @@ static dbdev_tab_t au1xmmc_mem_dbdev = {
 	.dev_intlevel	= 0,
 	.dev_intpolarity = 0,
 };
+
 static int memid;
 
 static void au1xmmc_dbdma_callback(int irq, void *dev_id)
@@ -896,17 +922,24 @@ static int au1xmmc_dbdma_init(struct au1xmmc_host *host)
 		return -ENODEV;
 	rxid = res->start;
 
-	if (!memid)
+	if (has_dbdma() == DMA_SHARED)
+		host->memid = memid;
+	else if (host->mmc->caps & MMC_CAP_8_BIT_DATA)
+		host->memid = au1xxx_ddma_add_device(&au1xmmc_mem32_dbdev);
+	else
+		host->memid = au1xxx_ddma_add_device(&au1xmmc_mem8_dbdev);
+
+	if (!host->memid)
 		return -ENODEV;
 
-	host->tx_chan = au1xxx_dbdma_chan_alloc(memid, txid,
+	host->tx_chan = au1xxx_dbdma_chan_alloc(host->memid, txid,
 				au1xmmc_dbdma_callback, (void *)host);
 	if (!host->tx_chan) {
 		dev_err(&host->pdev->dev, "cannot allocate TX DMA\n");
 		return -ENODEV;
 	}
 
-	host->rx_chan = au1xxx_dbdma_chan_alloc(rxid, memid,
+	host->rx_chan = au1xxx_dbdma_chan_alloc(rxid, host->memid,
 				au1xmmc_dbdma_callback, (void *)host);
 	if (!host->rx_chan) {
 		dev_err(&host->pdev->dev, "cannot allocate RX DMA\n");
@@ -914,8 +947,13 @@ static int au1xmmc_dbdma_init(struct au1xmmc_host *host)
 		return -ENODEV;
 	}
 
-	au1xxx_dbdma_set_devwidth(host->tx_chan, 8);
-	au1xxx_dbdma_set_devwidth(host->rx_chan, 8);
+	if (host->mmc->caps & MMC_CAP_8_BIT_DATA) {
+		au1xxx_dbdma_set_devwidth(host->tx_chan, 32);
+		au1xxx_dbdma_set_devwidth(host->rx_chan, 32);
+	} else {
+		au1xxx_dbdma_set_devwidth(host->tx_chan, 8);
+		au1xxx_dbdma_set_devwidth(host->rx_chan, 8);
+	}
 
 	au1xxx_dbdma_ring_alloc(host->tx_chan, AU1XMMC_DESCRIPTOR_COUNT);
 	au1xxx_dbdma_ring_alloc(host->rx_chan, AU1XMMC_DESCRIPTOR_COUNT);
@@ -932,6 +970,10 @@ static void au1xmmc_dbdma_shutdown(struct au1xmmc_host *host)
 		host->flags &= ~HOST_F_DMA;
 		au1xxx_dbdma_chan_free(host->tx_chan);
 		au1xxx_dbdma_chan_free(host->rx_chan);
+		if (has_dbdma() == DMA_SHARED && host->memid)
+			host->memid = NULL;
+		else
+			au1xxx_ddma_del_device(host->memid);
 	}
 }
 
@@ -1229,12 +1271,12 @@ static struct platform_driver au1xmmc_driver = {
 
 static int __init au1xmmc_init(void)
 {
-	if (has_dbdma()) {
+	if (has_dbdma() == DMA_SHARED) {
 		/* DSCR_CMD0_ALWAYS has a stride of 32 bits, we need a stride
 		* of 8 bits.  And since devices are shared, we need to create
 		* our own to avoid freaking out other devices.
 		*/
-		memid = au1xxx_ddma_add_device(&au1xmmc_mem_dbdev);
+		memid = au1xxx_ddma_add_device(&au1xmmc_mem8_dbdev);
 		if (!memid)
 			pr_err("au1xmmc: cannot add memory dbdma\n");
 	}
@@ -1243,7 +1285,7 @@ static int __init au1xmmc_init(void)
 
 static void __exit au1xmmc_exit(void)
 {
-	if (has_dbdma() && memid)
+	if (has_dbdma() == DMA_SHARED && memid)
 		au1xxx_ddma_del_device(memid);
 
 	platform_driver_unregister(&au1xmmc_driver);
