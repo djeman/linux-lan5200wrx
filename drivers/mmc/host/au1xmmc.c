@@ -1018,6 +1018,7 @@ static int au1xmmc_probe(struct platform_device *pdev)
 		iflag = 0;	/* nothing is shared */
 		mmc->max_seg_size = AU1200_MMC_DESCRIPTOR_SIZE;
 		mmc->f_max = 52000000;
+		mmc->caps |= MMC_CAP_MMC_HIGHSPEED | MMC_CAP_SD_HIGHSPEED;
 		if (host->ioarea->start == AU1100_SD0_PHYS_ADDR)
 			mmc->caps |= MMC_CAP_8_BIT_DATA;
 		break;
