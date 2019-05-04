@@ -1019,6 +1019,13 @@ static int au1xmmc_probe(struct platform_device *pdev)
 		break;
 	}
 
+	/* reset the interface */
+	__raw_writel(0, HOST_CONFIG2(host));
+	__raw_writel(0, HOST_CONFIG(host));
+	__raw_writel(~0, HOST_STATUS(host));
+	__raw_writel(0, HOST_ENABLE(host));
+	wmb();
+
 	ret = request_irq(host->irq, au1xmmc_irq, iflag, DRIVER_NAME, host);
 	if (ret) {
 		dev_err(&pdev->dev, "cannot grab IRQ\n");
