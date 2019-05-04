@@ -239,6 +239,9 @@ static void au1xmmc_finish_request(struct au1xmmc_host *host)
 {
 	struct mmc_request *mrq = host->mrq;
 
+	if (host->mrq == NULL)
+		return;
+
 	host->mrq = NULL;
 	host->flags &= HOST_F_ACTIVE | HOST_F_DMA;
 
