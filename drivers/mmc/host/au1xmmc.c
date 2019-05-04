@@ -995,7 +995,7 @@ static int au1xmmc_probe(struct platform_device *pdev)
 
 	mmc->ops = &au1xmmc_ops;
 
-	mmc->f_min =   450000;
+	mmc->f_min =   250000;
 	mmc->f_max = 24000000;
 
 	mmc->max_blk_size = 2048;
