@@ -998,7 +998,7 @@ static int au1xmmc_probe(struct platform_device *pdev)
 	mmc->max_blk_count = 512;
 
 	mmc->ocr_avail = AU1XMMC_OCR;
-	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_SDIO_IRQ;
+	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_SDIO_IRQ | MMC_CAP_ERASE;
 	mmc->max_segs = AU1XMMC_DESCRIPTOR_COUNT;
 
 	iflag = IRQF_SHARED;	/* Au1100/Au1200: one int for both ctrls */
