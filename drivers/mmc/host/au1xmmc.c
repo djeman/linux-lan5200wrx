@@ -52,16 +52,6 @@
 
 #define DRIVER_NAME "au1xxx-mmc"
 
-/* Set this to enable special debugging macros */
-/* #define DEBUG */
-
-#ifdef DEBUG
-#define DBG(fmt, idx, args...)	\
-	pr_debug("au1xmmc(%d): DEBUG: " fmt, idx, ##args)
-#else
-#define DBG(fmt, idx, args...) do {} while (0)
-#endif
-
 /* Hardware definitions */
 #define AU1XMMC_DESCRIPTOR_COUNT 1
 
@@ -493,18 +483,18 @@ static void au1xmmc_receive_pio(struct au1xmmc_host *host)
 			break;
 
 		if (status & SD_STATUS_RC) {
-			DBG("RX CRC Error [%d + %d].\n", host->pdev->id,
+			dev_dbg(&host->pdev->dev, "RX CRC Error [%d + %d].\n",
 					host->pio.len, count);
 			break;
 		}
 
 		if (status & SD_STATUS_RO) {
-			DBG("RX Overrun [%d + %d]\n", host->pdev->id,
+			dev_dbg(&host->pdev->dev, "RX Overrun [%d + %d]\n",
 					host->pio.len, count);
 			break;
 		}
 		else if (status & SD_STATUS_RU) {
-			DBG("RX Underrun [%d + %d]\n", host->pdev->id,
+			dev_dbg(&host->pdev->dev, "RX Underrun [%d + %d]\n",
 					host->pio.len,	count);
 			break;
 		}
@@ -859,7 +849,7 @@ static irqreturn_t au1xmmc_irq(int irq, void *dev_id)
 			au1xmmc_receive_pio(host);
 
 	} else if (status & 0x203F3C70) {
-			DBG("Unhandled status %8.8x\n", host->pdev->id,
+		dev_dbg(&host->pdev->dev, "Unhandled status %8.8x\n",
 				status);
 	}
 
