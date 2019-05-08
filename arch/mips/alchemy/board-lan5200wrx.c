@@ -278,6 +278,7 @@ struct au1xmmc_platform_data lan5200wrx_sd0_platdata = {
 	.card_inserted		= lan5200wrx_sd0_inserted,
 	.card_readonly		= lan5200wrx_sd0_readonly,
 	.mask_host_caps		= MMC_CAP_NEEDS_POLL,
+	.non_removable 		= true,
 };
 
 static struct resource au1300_sd0_res[] = {
