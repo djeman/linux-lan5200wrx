@@ -1092,8 +1092,11 @@ static int au1xmmc_probe(struct platform_device *pdev)
 		mmc->caps |= MMC_CAP_NEEDS_POLL;
 
 	/* platform may not be able to use all advertised caps */
-	if (host->platdata)
+	if (host->platdata) {
 		mmc->caps &= ~(host->platdata->mask_host_caps);
+		if (host->platdata->non_removable)
+			mmc->caps |= MMC_CAP_NONREMOVABLE;
+	}
 
 	tasklet_init(&host->data_task, au1xmmc_tasklet_data,
 			(unsigned long)host);
