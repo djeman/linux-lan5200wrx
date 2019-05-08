@@ -557,6 +557,9 @@ static void au1xmmc_cmd_complete(struct au1xmmc_host *host, u32 status)
 		}
 	}
 
+	if (cmd->flags & MMC_RSP_BUSY)
+		while (__raw_readl(HOST_STATUS(host)) & SD_STATUS_DB);
+
         /* Figure out errors */
 	if (status & (SD_STATUS_SC | SD_STATUS_WC | SD_STATUS_RC))
 		cmd->error = -EILSEQ;
@@ -577,9 +580,7 @@ static void au1xmmc_cmd_complete(struct au1xmmc_host *host, u32 status)
 		/* Start the DBDMA as soon as the buffer gets something in it */
 
 		if (host->flags & HOST_F_RECV) {
-			u32 mask = SD_STATUS_DB | SD_STATUS_NE;
-
-			while((status & mask) != mask)
+			while (!(status & SD_STATUS_NE))
 				status = __raw_readl(HOST_STATUS(host));
 		}
 
@@ -607,18 +608,17 @@ static int au1xmmc_prepare_data(struct au1xmmc_host *host,
 {
 	int datalen = data->blocks * data->blksz;
 
-	if (data->flags & MMC_DATA_READ)
+	if (data->flags & MMC_DATA_READ) {
 		host->flags |= HOST_F_RECV;
-	else
+		host->dma.dir = DMA_FROM_DEVICE;
+		IRQ_ON(host, SD_CONFIG_NE);
+	} else {
 		host->flags |= HOST_F_XMIT;
+		host->dma.dir = DMA_TO_DEVICE;
+	}
 
 	if (host->mrq->stop)
 		host->flags |= HOST_F_STOP;
-
-	if (data->flags & MMC_DATA_READ)
-		host->dma.dir = DMA_FROM_DEVICE;
-	else
-		host->dma.dir = DMA_TO_DEVICE;
 
 	host->dma.len = dma_map_sg(mmc_dev(host->mmc), data->sg,
 				   data->sg_len, host->dma.dir);
@@ -664,9 +664,6 @@ static int au1xmmc_prepare_data(struct au1xmmc_host *host,
 
 		if (host->flags & HOST_F_XMIT)
 			IRQ_ON(host, SD_CONFIG_TH);
-		else
-			IRQ_ON(host, SD_CONFIG_NE);
-			/* IRQ_ON(host, SD_CONFIG_RA | SD_CONFIG_RF); */
 	}
 
 	return 0;
@@ -878,6 +875,8 @@ static void au1xmmc_dbdma_callback(int irq, void *dev_id)
 	if (!host->mrq)
 		return;
 
+	IRQ_OFF(host, SD_CONFIG_NE);
+
 	if (host->flags & HOST_F_STOP)
 		SEND_STOP(host);
 
@@ -1027,7 +1026,8 @@ static int au1xmmc_probe(struct platform_device *pdev)
 	mmc->max_blk_count = 512;
 
 	mmc->ocr_avail = AU1XMMC_OCR;
-	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_SDIO_IRQ | MMC_CAP_ERASE;
+	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_SDIO_IRQ | 
+			MMC_CAP_ERASE | MMC_CAP_WAIT_WHILE_BUSY;
 	mmc->max_segs = AU1XMMC_DESCRIPTOR_COUNT;
 
 	iflag = IRQF_SHARED;	/* Au1100/Au1200: one int for both ctrls */
