@@ -60,7 +60,7 @@ void __init prom_init(void)
 	if (memsize > 0x10000000) {
 		add_memory_region(0, 0x10000000, BOOT_MEM_RAM);
 #ifdef CONFIG_HIGHMEM
-		add_memory_region(0x20000000, (memsize - 0x10000000), BOOT_MEM_RAM);
+		add_memory_region(0x30000000, (memsize - 0x10000000), BOOT_MEM_RAM);
 #endif
 	} else {
 		add_memory_region(0, memsize, BOOT_MEM_RAM);
