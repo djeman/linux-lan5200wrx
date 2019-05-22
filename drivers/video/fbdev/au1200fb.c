@@ -643,6 +643,40 @@ static struct panel_settings known_lcd_panels[] =
 		800, 800,
 		480, 480,
 	},
+	[10] = {
+		.name = "LGE_800x480_TFT_36MHz",
+		.monspecs = {
+			.modedb = NULL,
+			.modedb_len = 0,
+			.hfmin = 30000,
+			.hfmax = 70000,
+			.vfmin = 60,
+			.vfmax = 60,
+			.dclkmin = 6000000,
+			.dclkmax = 28000000,
+			.input = FB_DISP_RGB,
+		},
+		.mode_screen		= LCD_SCREEN_SX_N(800) |
+					  LCD_SCREEN_SY_N(480) |
+					  LCD_SCREEN_SWP,
+		.mode_horztiming	= LCD_HORZTIMING_HPW_N(20) |
+					  LCD_HORZTIMING_HND1_N(46) |
+					  LCD_HORZTIMING_HND2_N(210),
+		.mode_verttiming	= LCD_VERTTIMING_VPW_N(10) |
+					  LCD_VERTTIMING_VND1_N(23) |
+					  LCD_VERTTIMING_VND2_N(22),
+		.mode_clkcontrol	= LCD_CLKCONTROL_PCD_N(1) |
+					  LCD_CLKCONTROL_IV |
+					  LCD_CLKCONTROL_IH,
+		.mode_pwmdiv		= 0x00000000,
+		.mode_pwmhi		= 0x00000000,
+		.mode_outmask		= 0x00FFFFFF,
+		.mode_fifoctrl		= 0x2f2f2f2f,
+		.mode_backlight		= 0x00000000,
+		.lcdclk			= 96,
+		800, 800,
+		480, 480,
+	},
 };
 
 #define NUM_PANELS (ARRAY_SIZE(known_lcd_panels))
