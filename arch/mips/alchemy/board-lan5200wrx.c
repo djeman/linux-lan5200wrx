@@ -320,7 +320,7 @@ static struct platform_device lan5200wrx_sd0_dev = {
 
 static int lan5200wrxfb_panel_index(void)
 {
-	return 9;	/* DB1300_800x480 */
+	return 10;	/* LGE_800x480_TFT_36MHz */
 }
 
 static struct au1200fb_platdata lan5200wrxfb_pd = {
