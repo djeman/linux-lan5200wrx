@@ -38,6 +38,8 @@
 #include <asm/mach-au1x00/au1xxx_psc.h>
 #include <asm/mach-au1x00/prom.h>
 
+#define LAN5200WRX_TS_INT (AU1300_FIRST_INT + 67)
+
 const char *get_system_type(void)
 {
 	return "LAN5200WRx";
@@ -112,6 +114,10 @@ device_initcall(lan5200wrx_late_setup);
 static struct i2c_board_info lan5200wrx_i2c_devs[] __initdata = {
 	{ I2C_BOARD_INFO("wm8731", 0x1b), },	/* I2S audio codec */
 	{ I2C_BOARD_INFO("ne1619", 0x2d), },	/* adm1025-compat hwmon */
+	{
+		I2C_BOARD_INFO("max11803", 0x48),
+		.irq = LAN5200WRX_TS_INT,
+	},
 };
 
 /* multifunction pins to assign to GPIO controller */
@@ -185,7 +191,10 @@ static void __init lan5200wrx_gpio_config(void)
 	while (*i != -1)
 		au1300_gpio_direction_input(*i++);/* implies pin_to_gpio */
 
-	au1300_gpio_direction_output(AU1300_PIN_PIOW, 1);/* usb power */
+	/* enable usb power */
+	au1300_gpio_direction_output(AU1300_PIN_PIOW, 1);
+	/* enable i2c */
+	au1300_gpio_direction_output(AU1300_PIN_SD2DAT1, 1);
 
 	au1300_set_dbdma_gpio(1, AU1300_PIN_FG3AUX);
 }
