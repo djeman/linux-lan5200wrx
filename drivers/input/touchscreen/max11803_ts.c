@@ -127,8 +127,6 @@ static irqreturn_t max11803_ts_interrupt(int irq, void *dev_id)
 					x < 0 || y < 0)
 			goto out;
 
-		printk("**** djeman %d - %d, %d ****\n", (buf[1] & EVENT_TAG_MASK), y, x);
-
 		switch (buf[1] & EVENT_TAG_MASK) {
 		case EVENT_INIT:
 			/* fall through */
