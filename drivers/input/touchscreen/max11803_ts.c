@@ -107,7 +107,7 @@ static irqreturn_t max11803_ts_interrupt(int irq, void *dev_id)
 	if (status & MAX11803_CONT_INT) {
 		/* XY_combined_measurement */
 		max11803_write_cmd(client, XY_combined_measurement);
-		udelay(840);
+		udelay(4400);
 
 		ret = i2c_smbus_read_i2c_block_data(client,
 					FIFO_RD_X_MSB, XY_BUFSIZE, buf);
@@ -164,7 +164,7 @@ static void max11803_ts_phy_init(struct max11803_data *data)
 	/* X,Y panel setup time set to 20us */
 	max11803_write_reg(client, PANEL_SETUP_TIME_CONF_REG, 0x11);
 	/* Rough pullup time (2us), Fine pullup time (500us)  */
-	max11803_write_reg(client, TOUCH_DETECT_PULLUP_CONF_REG, 0x16);
+	max11803_write_reg(client, TOUCH_DETECT_PULLUP_CONF_REG, 0x99);
 	/* Enable Power */
 	max11803_write_reg(client, OP_MODE_CONF_REG, 0x06);
 }
