@@ -195,6 +195,8 @@ static void __init lan5200wrx_gpio_config(void)
 	au1300_gpio_direction_output(AU1300_PIN_PIOW, 1);
 	/* enable i2c */
 	au1300_gpio_direction_output(AU1300_PIN_SD2DAT1, 1);
+	/* enable bluetooth */
+	au1300_gpio_direction_output(AU1300_PIN_U0CTS, 1);
 
 	au1300_set_dbdma_gpio(1, AU1300_PIN_FG3AUX);
 }
