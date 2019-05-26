@@ -107,7 +107,7 @@ static irqreturn_t max11803_ts_interrupt(int irq, void *dev_id)
 	if (status & MAX11803_CONT_INT) {
 		/* XY_combined_measurement */
 		max11803_write_cmd(client, XY_combined_measurement);
-		udelay(4400);
+		udelay(4870);
 
 		ret = i2c_smbus_read_i2c_block_data(client,
 					FIFO_RD_X_MSB, XY_BUFSIZE, buf);
@@ -159,13 +159,15 @@ static void max11803_ts_phy_init(struct max11803_data *data)
 	 * direct conversion mode
 	 */
 	max11803_write_reg(client, GENERAL_CONF_REG, 0xf3);
-	/* Average X,Y, take 16 samples, average eight media sample */
+	/* Average X,Y, take 16 samples */
 	max11803_write_reg(client, MESURE_AVER_CONF_REG, 0xff);
+	/* ADC Sampling time 128us */
+	max11803_write_reg(client, ADC_SAMPLE_TIME_CONF_REG, 0xff);
 	/* X,Y panel setup time set to 20us */
 	max11803_write_reg(client, PANEL_SETUP_TIME_CONF_REG, 0x11);
 	/* Rough pullup time (2us), Fine pullup time (500us)  */
-	max11803_write_reg(client, TOUCH_DETECT_PULLUP_CONF_REG, 0x99);
-	/* Enable Power */
+	max11803_write_reg(client, TOUCH_DETECT_PULLUP_CONF_REG, 0x16);
+	/* Enable Power, Average XY, Average Z1Z2 */
 	max11803_write_reg(client, OP_MODE_CONF_REG, 0x06);
 }
 
