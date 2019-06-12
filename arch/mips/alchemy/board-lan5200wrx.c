@@ -112,8 +112,6 @@ device_initcall(lan5200wrx_late_setup);
 /******************************************************************************/
 
 static struct i2c_board_info lan5200wrx_i2c_devs[] __initdata = {
-	{ I2C_BOARD_INFO("wm8731", 0x1b), },	/* I2S audio codec */
-	{ I2C_BOARD_INFO("ne1619", 0x2d), },	/* adm1025-compat hwmon */
 	{
 		I2C_BOARD_INFO("max11803", 0x48),
 		.irq = LAN5200WRX_TS_INT,
