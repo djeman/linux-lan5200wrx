@@ -40,6 +40,12 @@ static const struct platform_device_id db1200_pids[] = {
 	}, {
 		.name		= "db1550-i2s",
 		.driver_data	= 5,
+	}, {
+		.name		= "lan5200wrx-i2s",
+		.driver_data	= 6,
+	}, {
+		.name		= "lan5200wrx-i2s2",
+		.driver_data	= 7,
 	},
 	{},
 };
@@ -160,6 +166,42 @@ static struct snd_soc_card db1550_i2s_machine = {
 	.num_links	= 1,
 };
 
+static struct snd_soc_dai_link lan5200wrx_i2s_dai = {
+	.name		= "MEDIA",
+	.stream_name	= "MEDIA PCM",
+	.codec_dai_name	= "snd-soc-dummy-dai",
+	.cpu_dai_name	= "au1xpsc_i2s.2",
+	.platform_name	= "au1xpsc-pcm.2",
+	.codec_name	= "snd-soc-dummy",
+	.dai_fmt	= SND_SOC_DAIFMT_RIGHT_J | SND_SOC_DAIFMT_NB_IF |
+			  SND_SOC_DAIFMT_CBS_CFS,
+};
+
+static struct snd_soc_card lan5200wrx_i2s_machine = {
+	.name		= "MEDIA_I2S",
+	.owner		= THIS_MODULE,
+	.dai_link	= &lan5200wrx_i2s_dai,
+	.num_links	= 1,
+};
+
+static struct snd_soc_dai_link lan5200wrx_i2s2_dai = {
+	.name		= "BT",
+	.stream_name	= "BT PCM",
+	.codec_dai_name	= "snd-soc-dummy-dai",
+	.cpu_dai_name	= "au1xpsc_i2s.0",
+	.platform_name	= "au1xpsc-pcm.0",
+	.codec_name	= "snd-soc-dummy",
+	.dai_fmt	= SND_SOC_DAIFMT_LEFT_J | SND_SOC_DAIFMT_IB_IF |
+			  SND_SOC_DAIFMT_CBS_CFS,
+};
+
+static struct snd_soc_card lan5200wrx_i2s2_machine = {
+	.name		= "BT_I2S",
+	.owner		= THIS_MODULE,
+	.dai_link	= &lan5200wrx_i2s2_dai,
+	.num_links	= 1,
+};
+
 /*-------------------------  COMMON PART  ---------------------------*/
 
 static struct snd_soc_card *db1200_cards[] = {
@@ -169,6 +211,8 @@ static struct snd_soc_card *db1200_cards[] = {
 	&db1300_i2s_machine,
 	&db1550_ac97_machine,
 	&db1550_i2s_machine,
+	&lan5200wrx_i2s_machine,
+	&lan5200wrx_i2s2_machine,
 };
 
 static int db1200_audio_probe(struct platform_device *pdev)

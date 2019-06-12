@@ -330,6 +330,13 @@ static int au1xpsc_i2s_drvprobe(struct platform_device *pdev)
 
 	/* preconfigure: set max rx/tx fifo depths */
 	wd->cfg |= PSC_I2SCFG_RT_FIFO8 | PSC_I2SCFG_TT_FIFO8;
+ 
+#ifdef CONFIG_MIPS_LAN5200WRX
+	if (iores->start == AU1300_PSC0_PHYS_ADDR)
+		wd->cfg |= PSC_I2SCFG_SET_WS(90) | PSC_I2SCFG_DIV4;
+	else if (iores->start == AU1300_PSC2_PHYS_ADDR)
+		wd->cfg |= PSC_I2SCFG_SET_WS(60) | PSC_I2SCFG_DIV2;
+#endif
 
 	/* don't wait for I2S core to become ready now; clocks may not
 	 * be running yet; depending on clock input for PSC a wait might
