@@ -421,7 +421,7 @@ static struct resource au1300_psc0_res[] = {
 };
 
 static struct platform_device lan5200wrx_i2s2_dev = {
-	.name		= "au1xpsc_i2s2",
+	.name		= "au1xpsc_i2s",
 	.id		= 0,	/* PSC ID */
 	.num_resources	= ARRAY_SIZE(au1300_psc0_res),
 	.resource	= au1300_psc0_res,
