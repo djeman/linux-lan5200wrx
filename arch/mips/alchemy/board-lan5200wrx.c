@@ -440,7 +440,11 @@ static struct platform_device lan5200wrx_i2s2dma_dev = {
 };
 
 static struct platform_device lan5200wrx_sndi2s_dev = {
-	.name		= "au1xpsc-i2s",
+	.name		= "lan5200wrx-i2s",
+};
+
+static struct platform_device lan5200wrx_sndi2s2_dev = {
+	.name		= "lan5200wrx-i2s2",
 };
 
 /**********************************************************************/
@@ -455,6 +459,7 @@ static struct platform_device *lan5200wrx_dev[] __initdata = {
 	&lan5200wrx_i2sdma_dev,
 	&lan5200wrx_i2s2dma_dev,
 	&lan5200wrx_sndi2s_dev,
+	&lan5200wrx_sndi2s2_dev,
 };
 
 static int __init lan5200wrx_dev_init(void)
