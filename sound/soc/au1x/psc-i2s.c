@@ -333,9 +333,9 @@ static int au1xpsc_i2s_drvprobe(struct platform_device *pdev)
  
 #ifdef CONFIG_MIPS_LAN5200WRX
 	if (iores->start == AU1300_PSC0_PHYS_ADDR)
-		wd->cfg |= PSC_I2SCFG_SET_WS(90) | PSC_I2SCFG_DIV4;
+		wd->cfg |= PSC_I2SCFG_SET_WS(90) | PSC_I2SCFG_DIV16;
 	else if (iores->start == AU1300_PSC2_PHYS_ADDR)
-		wd->cfg |= PSC_I2SCFG_SET_WS(60) | PSC_I2SCFG_DIV2;
+		wd->cfg |= PSC_I2SCFG_SET_WS(60) | PSC_I2SCFG_DIV4;
 #endif
 
 	/* don't wait for I2S core to become ready now; clocks may not
