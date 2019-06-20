@@ -951,7 +951,7 @@ static void au1xmmc_dbdma_shutdown(struct au1xmmc_host *host)
 		au1xxx_dbdma_chan_free(host->tx_chan);
 		au1xxx_dbdma_chan_free(host->rx_chan);
 		if (has_dbdma() == DMA_SHARED && host->memid)
-			host->memid = NULL;
+			host->memid = 0;
 		else
 			au1xxx_ddma_del_device(host->memid);
 	}
