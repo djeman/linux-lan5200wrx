@@ -40,6 +40,8 @@
 
 #define LAN5200WRX_TS_INT (AU1300_FIRST_INT + 67)
 
+static u64 au1300_all_dmamask = DMA_BIT_MASK(32);
+
 const char *get_system_type(void)
 {
 	return "LAN5200WRx";
@@ -317,7 +319,9 @@ static struct resource au1300_sd0_res[] = {
 
 static struct platform_device lan5200wrx_sd0_dev = {
 	.dev = {
-		.platform_data	= &lan5200wrx_sd0_platdata,
+		.dma_mask		= &au1300_all_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		.platform_data		= &lan5200wrx_sd0_platdata,
 	},
 	.name		= "au1xxx-mmc",
 	.id		= 0,
@@ -349,13 +353,11 @@ static struct resource au1300_lcd_res[] = {
 	}
 };
 
-static u64 au1300_lcd_dmamask = DMA_BIT_MASK(32);
-
 static struct platform_device lan5200wrx_lcd_dev = {
 	.name		= "au1200-lcd",
 	.id		= 0,
 	.dev = {
-		.dma_mask		= &au1300_lcd_dmamask,
+		.dma_mask		= &au1300_all_dmamask,
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
 		.platform_data		= &lan5200wrxfb_pd,
 	},
@@ -441,10 +443,18 @@ static struct platform_device lan5200wrx_i2s2dma_dev = {
 
 static struct platform_device lan5200wrx_sndi2s_dev = {
 	.name		= "lan5200wrx-i2s",
+	.dev = {
+		.dma_mask		= &au1300_all_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+	},
 };
 
 static struct platform_device lan5200wrx_sndi2s2_dev = {
 	.name		= "lan5200wrx-i2s2",
+	.dev = {
+		.dma_mask		= &au1300_all_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+	},
 };
 
 /**********************************************************************/
