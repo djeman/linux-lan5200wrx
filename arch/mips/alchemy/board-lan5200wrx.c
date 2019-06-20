@@ -69,7 +69,7 @@ void __init prom_init(void)
 	}
 }
 
-void prom_putchar(unsigned char c)
+void prom_putchar(char c)
 {
 	alchemy_uart_putchar(AU1300_UART2_PHYS_ADDR, c);
 }
