@@ -15,8 +15,13 @@
 #include "lima_vm.h"
 #include "lima_regs.h"
 
+#define pp_writei(regi, data) writel(data, ip->iomem + regi)
+#define pp_readi(regi) readl(ip->iomem + regi)
+
 #define pp_write(reg, data) writel(data, ip->iomem + LIMA_PP_##reg)
 #define pp_read(reg) readl(ip->iomem + LIMA_PP_##reg)
+
+static int lima_pp_hard_reset(struct lima_ip *ip);
 
 static void lima_pp_handle_irq(struct lima_ip *ip, u32 state)
 {
@@ -101,8 +106,14 @@ static void lima_pp_soft_reset_async(struct lima_ip *ip)
 		return;
 
 	pp_write(INT_MASK, 0);
-	pp_write(INT_RAWSTAT, LIMA_PP_IRQ_MASK_ALL);
-	pp_write(CTRL, LIMA_PP_CTRL_SOFT_RESET);
+
+	if (ip->dev->id == lima_gpu_mali200) {
+		pp_write(CTRL, LIMA_PP_CTRL_STOP_BUS);
+	} else {
+		pp_write(INT_RAWSTAT, LIMA_PP_IRQ_MASK_ALL);
+		pp_write(CTRL, LIMA_PP_CTRL_SOFT_RESET);
+	}
+
 	ip->data.async_reset = true;
 }
 
@@ -111,15 +122,27 @@ static int lima_pp_soft_reset_async_wait_one(struct lima_ip *ip)
 	struct lima_device *dev = ip->dev;
 	int timeout;
 
-	for (timeout = 1000; timeout > 0; timeout--) {
-		if (!(pp_read(STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
-		    pp_read(INT_RAWSTAT) == LIMA_PP_IRQ_RESET_COMPLETED)
-			break;
+	if (ip->dev->id == lima_gpu_mali200) {
+		for (timeout = 1000; timeout > 0; timeout--) {
+			if (!(pp_read(STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
+			    pp_read(STATUS) == LIMA_PP_STATUS_BUS_STOPPED)
+				break;
+		}
+	} else {
+		for (timeout = 1000; timeout > 0; timeout--) {
+			if (!(pp_read(STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
+			    pp_read(INT_RAWSTAT) == LIMA_PP_IRQ_RESET_COMPLETED)
+				break;
+		}
 	}
+
 	if (!timeout) {
 		dev_err(dev->dev, "pp %s reset time out\n", lima_ip_name(ip));
 		return -ETIMEDOUT;
 	}
+
+	if (ip->dev->id == lima_gpu_mali200)
+		lima_pp_hard_reset(ip);
 
 	pp_write(INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
 	pp_write(INT_MASK, LIMA_PP_IRQ_MASK_USED);
@@ -165,13 +188,19 @@ static int lima_pp_hard_reset(struct lima_ip *ip)
 {
 	struct lima_device *dev = ip->dev;
 	int timeout;
+	int reset_target_reg;
 
-	pp_write(PERF_CNT_0_LIMIT, 0xC0FFE000);
+	if (ip->dev->id == lima_gpu_mali200)
+		reset_target_reg = LIMA_PP_WRITE_BOUNDARY_LOW;
+	else
+		reset_target_reg = LIMA_PP_PERF_CNT_0_LIMIT;
+
+	pp_writei(reset_target_reg, 0xC0FFE000);
 	pp_write(INT_MASK, 0);
 	pp_write(CTRL, LIMA_PP_CTRL_FORCE_RESET);
 	for (timeout = 1000; timeout > 0; timeout--) {
-		pp_write(PERF_CNT_0_LIMIT, 0xC01A0000);
-		if (pp_read(PERF_CNT_0_LIMIT) == 0xC01A0000)
+		pp_writei(reset_target_reg, 0xC01A0000);
+		if (pp_readi(reset_target_reg) == 0xC01A0000)
 			break;
 	}
 	if (!timeout) {
@@ -179,7 +208,7 @@ static int lima_pp_hard_reset(struct lima_ip *ip)
 		return -ETIMEDOUT;
 	}
 
-	pp_write(PERF_CNT_0_LIMIT, 0);
+	pp_writei(reset_target_reg, 0);
 	pp_write(INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
 	pp_write(INT_MASK, LIMA_PP_IRQ_MASK_USED);
 	return 0;
@@ -195,7 +224,7 @@ static void lima_pp_print_version(struct lima_ip *ip)
 	minor = version & 0xFF;
 	switch (version >> 16) {
 	case 0xC807:
-	    name = "mali200";
+		name = "mali200";
 		break;
 	case 0xCE07:
 		name = "mali300";
@@ -383,10 +412,10 @@ int lima_pp_pipe_init(struct lima_device *dev)
 	int frame_size;
 	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_pp;
 
-	if (dev->id == lima_gpu_mali400)
-		frame_size = sizeof(struct drm_lima_m400_pp_frame);
-	else
+	if (dev->id == lima_gpu_mali450)
 		frame_size = sizeof(struct drm_lima_m450_pp_frame);
+	else
+		frame_size = sizeof(struct drm_lima_m400_pp_frame);
 
 	if (!lima_pp_task_slab) {
 		lima_pp_task_slab = kmem_cache_create_usercopy(

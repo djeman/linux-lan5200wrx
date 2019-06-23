@@ -31,6 +31,9 @@ static int lima_ioctl_info(struct drm_device *dev, void *data, struct drm_file *
 	struct lima_device *ldev = to_lima_dev(dev);
 
 	switch (ldev->id) {
+	case lima_gpu_mali200:
+		info->gpu_id = LIMA_INFO_GPU_MALI200;
+		break;
 	case lima_gpu_mali400:
 		info->gpu_id = LIMA_INFO_GPU_MALI400;
 		break;
@@ -357,7 +360,10 @@ static int lima_pdev_probe(struct platform_device *pdev)
 
 	ldev->pdev = pdev;
 	ldev->dev = &pdev->dev;
-	ldev->id = (enum lima_gpu_id)of_device_get_match_data(&pdev->dev);
+	if (pdev->dev.of_node)
+		ldev->id = (enum lima_gpu_id)of_device_get_match_data(&pdev->dev);
+	else
+		ldev->id = (enum lima_gpu_id)pdev->id;
 
 	platform_set_drvdata(pdev, ldev);
 
@@ -404,6 +410,7 @@ static int lima_pdev_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id dt_match[] = {
+	{ .compatible = "arm,mali-200", .data = (void *)lima_gpu_mali200 },
 	{ .compatible = "arm,mali-400", .data = (void *)lima_gpu_mali400 },
 	{ .compatible = "arm,mali-450", .data = (void *)lima_gpu_mali450 },
 	{}

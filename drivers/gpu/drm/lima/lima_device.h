@@ -10,7 +10,8 @@
 #include "lima_ttm.h"
 
 enum lima_gpu_id {
-	lima_gpu_mali400 = 0,
+	lima_gpu_mali200 = 0,
+	lima_gpu_mali400,
 	lima_gpu_mali450,
 	lima_gpu_num,
 };

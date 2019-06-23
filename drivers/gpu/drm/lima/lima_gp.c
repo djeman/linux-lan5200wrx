@@ -12,8 +12,13 @@
 #include "lima_gp.h"
 #include "lima_regs.h"
 
+#define gp_writei(regi, data) writel(data, ip->iomem + regi)
+#define gp_readi(regi) readl(ip->iomem + regi)
+
 #define gp_write(reg, data) writel(data, ip->iomem + LIMA_GP_##reg)
 #define gp_read(reg) readl(ip->iomem + LIMA_GP_##reg)
+
+static int lima_gp_hard_reset(struct lima_ip *ip);
 
 static irqreturn_t lima_gp_irq_handler(int irq, void *data)
 {
@@ -60,8 +65,14 @@ static void lima_gp_soft_reset_async(struct lima_ip *ip)
 		return;
 
 	gp_write(INT_MASK, 0);
-	gp_write(INT_CLEAR, LIMA_GP_IRQ_RESET_COMPLETED);
-	gp_write(CMD, LIMA_GP_CMD_SOFT_RESET);
+
+	if (ip->dev->id == lima_gpu_mali200) {
+		gp_write(CMD, LIMA_GP_CMD_STOP_BUS);
+	} else {
+		gp_write(INT_CLEAR, LIMA_GP_IRQ_RESET_COMPLETED);
+		gp_write(CMD, LIMA_GP_CMD_SOFT_RESET);
+	}
+
 	ip->data.async_reset = true;
 }
 
@@ -73,14 +84,25 @@ static int lima_gp_soft_reset_async_wait(struct lima_ip *ip)
 	if (!ip->data.async_reset)
 		return 0;
 
-	for (timeout = 1000; timeout > 0; timeout--) {
-		if (gp_read(INT_RAWSTAT) & LIMA_GP_IRQ_RESET_COMPLETED)
-			break;
+	if (ip->dev->id == lima_gpu_mali200) {
+		for (timeout = 1000; timeout > 0; timeout--) {
+			if (gp_read(STATUS) & LIMA_GP_STATUS_BUS_STOPPED)
+				break;
+		}
+	} else {
+		for (timeout = 1000; timeout > 0; timeout--) {
+			if (gp_read(INT_RAWSTAT) & LIMA_GP_IRQ_RESET_COMPLETED)
+				break;
+		}
 	}
+
 	if (!timeout) {
 		dev_err(dev->dev, "gp soft reset time out\n");
 		return -ETIMEDOUT;
 	}
+
+	if (ip->dev->id == lima_gpu_mali200)
+		lima_gp_hard_reset(ip);
 
 	gp_write(INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
 	gp_write(INT_MASK, LIMA_GP_IRQ_MASK_USED);
@@ -143,13 +165,19 @@ static int lima_gp_hard_reset(struct lima_ip *ip)
 {
 	struct lima_device *dev = ip->dev;
 	int timeout;
+	int reset_target_reg;
 
-	gp_write(PERF_CNT_0_LIMIT, 0xC0FFE000);
+	if (ip->dev->id == lima_gpu_mali200)
+		reset_target_reg = LIMA_GP_WRITE_BOUND_LOW;
+	else
+		reset_target_reg = LIMA_GP_PERF_CNT_0_LIMIT;
+
+	gp_writei(reset_target_reg, 0xC0FFE000);
 	gp_write(INT_MASK, 0);
 	gp_write(CMD, LIMA_GP_CMD_RESET);
 	for (timeout = 1000; timeout > 0; timeout--) {
-		gp_write(PERF_CNT_0_LIMIT, 0xC01A0000);
-		if (gp_read(PERF_CNT_0_LIMIT) == 0xC01A0000)
+		gp_writei(reset_target_reg, 0xC01A0000);
+		if (gp_readi(reset_target_reg) == 0xC01A0000)
 			break;
 	}
 	if (!timeout) {
@@ -157,7 +185,7 @@ static int lima_gp_hard_reset(struct lima_ip *ip)
 		return -ETIMEDOUT;
 	}
 
-	gp_write(PERF_CNT_0_LIMIT, 0);
+	gp_writei(reset_target_reg, 0);
 	gp_write(INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
 	gp_write(INT_MASK, LIMA_GP_IRQ_MASK_USED);
 	return 0;
@@ -193,7 +221,7 @@ static void lima_gp_print_version(struct lima_ip *ip)
 	minor = version & 0xFF;
 	switch (version >> 16) {
 	case 0xA07:
-	    name = "mali200";
+		name = "mali200";
 		break;
 	case 0xC07:
 		name = "mali300";
