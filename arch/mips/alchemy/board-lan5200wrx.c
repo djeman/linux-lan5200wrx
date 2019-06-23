@@ -367,6 +367,45 @@ static struct platform_device lan5200wrx_lcd_dev = {
 
 /**********************************************************************/
 
+static struct resource au1300_gpu_res[] = {
+	[0] = {
+		.start	= AU1300_GPU_PHYS_ADDR,
+		.end	= AU1300_GPU_PHYS_ADDR + 0x4000 - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.name   = "gp",
+		.start	= 77,
+		.end	= 77,
+		.flags	= IORESOURCE_IRQ,
+	},
+	[2] = {
+		.name   = "gpmmu",
+		.start	= 76,
+		.end	= 76,
+		.flags	= IORESOURCE_IRQ,
+	},
+	[3] = {
+		.name   = "pp0",
+		.start	= 78,
+		.end	= 78,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device lan5200wrx_gpu_dev = {
+	.name		= "lima",
+	.id		= 0,
+	.dev = {
+		.dma_mask		= &au1300_all_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+	},
+	.num_resources	= ARRAY_SIZE(au1300_gpu_res),
+	.resource	= au1300_gpu_res,
+};
+
+/**********************************************************************/
+
 static struct resource au1300_psc2_res[] = {
 	[0] = {
 		.start	= AU1300_PSC2_PHYS_ADDR,
@@ -464,6 +503,7 @@ static struct platform_device *lan5200wrx_dev[] __initdata = {
 	&lan5200wrx_i2c_dev,
 	&lan5200wrx_sd0_dev,
 	&lan5200wrx_lcd_dev,
+	&lan5200wrx_gpu_dev,
 	&lan5200wrx_i2s_dev,
 	&lan5200wrx_i2s2_dev,
 	&lan5200wrx_i2sdma_dev,
@@ -474,12 +514,13 @@ static struct platform_device *lan5200wrx_dev[] __initdata = {
 
 static int __init lan5200wrx_dev_init(void)
 {
-	int cpldirq;
 	struct clk *c;
 
-	/* setup CPLD IRQ muxer */
-	cpldirq = au1300_gpio_to_irq(AU1300_PIN_EXTCLK1);
-	irq_set_irq_type(cpldirq, IRQ_TYPE_LEVEL_HIGH);
+	/* enable MPE/BSA/GPU/MGP */
+	au1300_vss_block_control(AU1300_VSS_MGP, 1);
+	au1300_vss_block_control(AU1300_VSS_GPE, 1);
+	au1300_vss_block_control(AU1300_VSS_BSA, 1);
+	au1300_vss_block_control(AU1300_VSS_MPE, 1);
 
 	/*
 	 * setup board
